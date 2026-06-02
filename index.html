@@ -327,6 +327,7 @@
     <input type="password" class="auth-input" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="auth-btn" onclick="doLogin()">Connexion →</button>
     <div class="auth-error" id="auth-error">Identifiants incorrects.</div>
+    <div id="firebase-status" style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px;font-family:var(--mono)">⏳ Connexion à la base de données...</div>
   </div>
 </div>
 
@@ -340,6 +341,7 @@
     <div class="nav-item" onclick="goPage('analytics')" id="nav-analytics"><span class="nav-icon">◈</span>Analytique</div>
     <div class="sidebar-section" id="nav-section-admin">Admin</div>
     <div class="nav-item" onclick="goPage('actions')" id="nav-actions"><span class="nav-icon">⊕</span>Actions</div>
+    <div class="nav-item" onclick="goPage('performance')" id="nav-performance"><span class="nav-icon">★</span>Performance</div>
     <div class="nav-item" onclick="goPage('produits')" id="nav-produits"><span class="nav-icon">◉</span>Produits</div>
     <div class="nav-item" onclick="goPage('logs')" id="nav-logs"><span class="nav-icon">≡</span>Logs</div>
     <div class="sidebar-bottom">
@@ -367,6 +369,9 @@
     </div>
     <div class="bn-item" onclick="goPage('actions')" id="bn-actions">
       <span class="bn-icon">⊕</span><span>Actions</span>
+    </div>
+    <div class="bn-item" onclick="goPage('performance')" id="bn-performance">
+      <span class="bn-icon">★</span><span>Perf</span>
     </div>
     <div class="bn-item" onclick="goPage('logs')" id="bn-logs" style="display:none">
       <span class="bn-icon">≡</span><span>Logs</span>
@@ -444,6 +449,13 @@
       <div class="page-title">Journal d'activité</div>
       <div class="page-sub">Toutes les actions enregistrées</div>
       <div class="section" id="logs-content"></div>
+    </div>
+
+    <!-- PERFORMANCE -->
+    <div class="page" id="page-performance">
+      <div class="page-title">Performance</div>
+      <div class="page-sub">Suivi des ventes & rémunération de Kenjy</div>
+      <div id="performance-content"></div>
     </div>
 
   </div>
@@ -540,7 +552,25 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
+// ============================================================
+// FIREBASE INIT
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDzCYW2i8-WQT8oY2qpyzYnKwc8FEOb-MM",
+  authDomain: "stock-ceacf.firebaseapp.com",
+  databaseURL: "https://stock-ceacf-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "stock-ceacf",
+  storageBucket: "stock-ceacf.firebasestorage.app",
+  messagingSenderId: "406267079445",
+  appId: "1:406267079445:web:0995e6c7a61e7232b9171c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const STATE_REF = db.ref('state');
+
 // ============================================================
 // DATA STORE
 // ============================================================
@@ -565,12 +595,6 @@ let currentRole = null;
 let selectedPairId = null;
 let stockFilter = 'all';
 
-function loadState() {
-  const raw = localStorage.getItem('rhq_state');
-  if (raw) return JSON.parse(raw);
-  return initState();
-}
-
 function initState() {
   const pairs = [];
   let id = 1;
@@ -590,17 +614,63 @@ function initState() {
   return {
     pairs,
     defaultSalePrice: 70,
+    livShipping: 9,
     colors: ['beige', 'gris'],
     sizes: ['39', '40', '41', '42', '43'],
+    kenjy: {
+      salaire: 0,
+      primeObjectif: 10,
+      primeMontant: 50,
+      periodeLabel: 'ce mois-ci'
+    },
     logs: [{ ts: Date.now(), user: 'admin', action: 'Initialisation du stock (16 paires Birkenstock)', tag: 'update' }]
   };
 }
 
-let STATE = loadState();
+let STATE = initState();
+let firebaseReady = false;
 
-function saveState() { localStorage.setItem('rhq_state', JSON.stringify(STATE)); }
+// Sync temps réel : dès qu'une donnée change dans Firebase, on met à jour l'UI
+STATE_REF.on('value', snapshot => {
+  const data = snapshot.val();
+  if (data) {
+    STATE = data;
+    // Migration champs manquants
+    if (!STATE.kenjy) STATE.kenjy = { salaire: 0, primeObjectif: 10, primeMontant: 50, periodeLabel: 'ce mois-ci' };
+    if (STATE.livShipping === undefined) STATE.livShipping = 9;
+  }
+  if (!firebaseReady) {
+    firebaseReady = true;
+    const statusEl = document.getElementById('firebase-status');
+    if (statusEl) statusEl.innerHTML = '🟢 Base de données connectée';
+    // Premier chargement : si Firebase est vide, on pousse l'état initial
+    if (!data) STATE_REF.set(STATE);
+    // Si on est connecté, rafraîchir l'UI
+    if (currentUser) refreshCurrentPage();
+  } else {
+    // Mise à jour en temps réel depuis un autre appareil
+    if (currentUser) refreshCurrentPage();
+  }
+});
+
+function refreshCurrentPage() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const id = active.id.replace('page-', '');
+  if (id === 'dashboard') renderDashboard();
+  else if (id === 'stock') renderStock();
+  else if (id === 'analytics') renderAnalytics();
+  else if (id === 'actions') renderActions();
+  else if (id === 'performance') renderPerformance();
+  else if (id === 'logs') renderLogs();
+}
+
+function saveState() {
+  STATE_REF.set(STATE);
+}
 
 function addLog(action, tag = 'update') {
+  if (!STATE.logs) STATE.logs = [];
   STATE.logs.unshift({ ts: Date.now(), user: currentUser || '—', action, tag });
   if (STATE.logs.length > 200) STATE.logs.pop();
   saveState();
@@ -610,6 +680,7 @@ function addLog(action, tag = 'update') {
 // AUTH
 // ============================================================
 function doLogin() {
+  if (!firebaseReady) { notify('Connexion en cours...'); return; }
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const acc = ACCOUNTS[u];
@@ -623,9 +694,7 @@ function doLogin() {
     if (currentRole !== 'admin') {
       document.getElementById('nav-produits').style.display = 'none';
       document.getElementById('nav-section-admin').style.display = 'none';
-      // kenjy a accès aux logs
     }
-    // Bottom nav : afficher logs pour tous, masquer produits toujours (admin seulement via sidebar)
     const bnLogs = document.getElementById('bn-logs');
     if (bnLogs) bnLogs.style.display = 'flex';
     renderDashboard();
@@ -661,6 +730,7 @@ function goPage(name) {
   if (name === 'actions') renderActions();
   if (name === 'produits') renderProduits();
   if (name === 'logs') renderLogs();
+  if (name === 'performance') renderPerformance();
   if (name === 'dashboard') renderDashboard();
   window.scrollTo(0, 0);
 }
@@ -679,16 +749,44 @@ function stats() {
   const enLivClient = all.filter(p => p.status === 'livraison-client').length;
   const vendus = all.filter(p => ['vendu','arrive'].includes(p.status));
   const commandes = all.filter(p => p.status === 'commande').length;
-  const revenusActuels = vendus.reduce((s, p) => s + (p.salePrice || STATE.defaultSalePrice), 0);
-  const coutAchat = all.reduce((s, p) => s + p.cost, 0);
+
+  // Dépenses totales fixes : achat des paires + 2 livraisons groupées
   const depenses = COSTS.totalAchat + COSTS.livraison1 + COSTS.livraison2;
-  const benefActuel = revenusActuels - (vendus.length * 13.13);
+
+  // Revenus encaissés = somme des prix de vente des paires vendues
+  const revenusActuels = vendus.reduce((s, p) => s + (p.salePrice || STATE.defaultSalePrice), 0);
+
+  // Profit net actuel = revenus encaissés - toutes les dépenses fixes
+  const profitActuel = revenusActuels - depenses;
+
+  // Revenus si on vend TOUT le reste au prix défaut
   const restants = all.filter(p => !['vendu','arrive'].includes(p.status));
-  const benefPotentiel = restants.reduce((s, p) => s + (STATE.defaultSalePrice - p.cost), 0);
-  const benefTotal = benefActuel + benefPotentiel;
+  const revenusRestantsPotentiels = restants.reduce((s, p) => s + (p.salePrice || STATE.defaultSalePrice), 0);
+  const revenusTotauxPotentiels = revenusActuels + revenusRestantsPotentiels;
+
+  // Profit total si tout vendu = total revenus - dépenses fixes
+  const profitSiToutVendu = revenusTotauxPotentiels - depenses;
+
+  // Il manque = combien de € de revenus supplémentaires pour être rentable
   const manque = Math.max(0, depenses - revenusActuels);
-  const pairesManquantes = Math.ceil(manque / (STATE.defaultSalePrice - 13.13));
-  return { total, enStock, enLivMoi, enLivClient, vendus: vendus.length, commandes, revenusActuels, coutAchat, benefActuel, benefPotentiel, benefTotal, depenses, manque, pairesManquantes };
+  const pairesManquantes = Math.ceil(manque / (STATE.defaultSalePrice - 13.13 - (STATE.livShipping || 0)));
+
+  // Profit réel par paire (prix vente - achat paire - livraison unitaire)
+  const profitParPaire = STATE.defaultSalePrice - 13.13 - (STATE.livShipping || 0);
+
+  // Ventes de kenjy = paires marquées vendu/arrivé dont le log contient "kenjy"
+  const ventesKenjy = vendus.filter(p => {
+    return STATE.logs.some(l => l.user === 'kenjy' && l.action.includes(`#${p.id}`) && l.tag === 'vente');
+  }).length;
+
+  return {
+    total, enStock, enLivMoi, enLivClient,
+    vendus: vendus.length, commandes,
+    depenses, revenusActuels,
+    profitActuel, profitSiToutVendu,
+    manque, pairesManquantes,
+    profitParPaire, ventesKenjy
+  };
 }
 
 // ============================================================
@@ -699,28 +797,34 @@ let chartStock = null, chartBenef = null;
 function renderDashboard() {
   const s = stats();
   const grid = document.getElementById('stat-grid');
-  const benefParPaire = STATE.defaultSalePrice - 13.13;
-  const benefNetUnitaire = benefParPaire;
+
+  // Carte 1 : profit net actuel (revenus - toutes dépenses)
+  const c1color = s.profitActuel >= 0 ? 'green' : 'red';
+  const c1sign = s.profitActuel >= 0 ? '+' : '';
+
+  // Carte 2 : profit si tout vendu (revenus totaux potentiels - dépenses)
+  const c2sign = s.profitSiToutVendu >= 0 ? '+' : '';
+
   grid.innerHTML = `
-    <div class="stat-card green">
-      <div class="stat-label">Bénéfice actuel</div>
-      <div class="stat-value">${s.benefActuel >= 0 ? '+' : ''}${s.benefActuel.toFixed(0)}€</div>
-      <div class="stat-sub">${s.vendus} paire(s) vendue(s)</div>
+    <div class="stat-card ${c1color}">
+      <div class="stat-label">Profit net actuel</div>
+      <div class="stat-value">${c1sign}${Math.round(s.profitActuel)}€</div>
+      <div class="stat-sub">${s.vendus} vendue(s) · dépenses : ${Math.round(s.depenses)}€</div>
     </div>
     <div class="stat-card blue">
-      <div class="stat-label">Bénéfice total projeté</div>
-      <div class="stat-value">${s.benefTotal >= 0 ? '+' : ''}${s.benefTotal.toFixed(0)}€</div>
-      <div class="stat-sub">si tout vendu à ${STATE.defaultSalePrice}€</div>
+      <div class="stat-label">Profit si tout vendu</div>
+      <div class="stat-value">${c2sign}${Math.round(s.profitSiToutVendu)}€</div>
+      <div class="stat-sub">${STATE.pairs.length} × ${STATE.defaultSalePrice}€ − ${Math.round(s.depenses)}€ de frais</div>
     </div>
     <div class="stat-card amber">
-      <div class="stat-label">Il manque</div>
-      <div class="stat-value">${s.manque.toFixed(0)}€</div>
-      <div class="stat-sub">${s.pairesManquantes} paire(s) à vendre</div>
+      <div class="stat-label">Revenus manquants</div>
+      <div class="stat-value">${Math.round(s.manque)}€</div>
+      <div class="stat-sub">encore ${s.pairesManquantes} paire(s) à vendre pour couvrir les frais</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Bénéf / paire (à ${STATE.defaultSalePrice}€)</div>
-      <div class="stat-value" style="color:var(--green)">+${benefNetUnitaire.toFixed(2)}€</div>
-      <div class="stat-sub">${s.enStock} en stock dispo</div>
+      <div class="stat-label">Gain / paire (à ${STATE.defaultSalePrice}€)</div>
+      <div class="stat-value" style="color:var(--green)">+${s.profitParPaire.toFixed(2)}€</div>
+      <div class="stat-sub">${STATE.defaultSalePrice}€ − ${(13.13).toFixed(2)}€ achat − ${(STATE.livShipping||0).toFixed(2)}€ liv.</div>
     </div>`;
 
   document.getElementById('total-pairs-badge').textContent = STATE.pairs.length + ' paires';
@@ -1209,6 +1313,23 @@ function renderProduits() {
     return;
   }
   document.getElementById('produits-content').innerHTML = `
+    <div class="section" style="border:1px solid rgba(245,158,11,0.25);margin-bottom:20px">
+      <div class="section-title" style="color:var(--amber)">⚙ Paramètres de calcul</div>
+      <div class="form-row cols2" style="margin-bottom:0">
+        <div class="form-group">
+          <label>Prix de vente par défaut (€)</label>
+          <input type="number" class="form-input" id="set-saleprice" value="${STATE.defaultSalePrice}" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Coût livraison moyen / paire (€)</label>
+          <input type="number" class="form-input" id="set-livshipping" value="${STATE.livShipping || 0}" step="0.01" placeholder="9">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-primary" onclick="saveCalcSettings()">Enregistrer</button>
+        <span style="font-size:12px;color:var(--text3);margin-left:10px">Gain / paire = prix vente − 13,13€ − coût liv. = <strong style="color:var(--green)">${(STATE.defaultSalePrice - 13.13 - (STATE.livShipping||0)).toFixed(2)}€</strong></span>
+      </div>
+    </div>
     <div class="two-col">
       <div class="section">
         <div class="section-title">Coloris disponibles</div>
@@ -1246,7 +1367,7 @@ function renderProduits() {
           const pairs = STATE.pairs.filter(p => p.color === c && p.size === sz);
           const withPrice = pairs.filter(p => p.salePrice);
           const avgPrice = withPrice.length ? (withPrice.reduce((s,p) => s + p.salePrice, 0) / withPrice.length).toFixed(2) : STATE.defaultSalePrice;
-          const benef = (parseFloat(avgPrice) - 13.13) * pairs.length;
+          const profitUnit = parseFloat(avgPrice) - 13.13 - (STATE.livShipping || 0);
           return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
               <span class="color-dot" style="background:${getColor(c)}"></span>
@@ -1254,11 +1375,22 @@ function renderProduits() {
               <span style="font-size:11px;color:var(--text3);margin-left:auto">${pairs.length} paire(s)</span>
             </div>
             <div style="font-size:12px;color:var(--text2)">Prix moy : <strong style="color:var(--text)">${avgPrice}€</strong></div>
-            <div style="font-size:12px;color:var(--green)">Bénéf projeté : ${fmtShort(benef)}</div>
+            <div style="font-size:12px;color:${profitUnit >= 0 ? 'var(--green)' : 'var(--red)'}">Gain / paire : ${profitUnit >= 0 ? '+' : ''}${profitUnit.toFixed(2)}€</div>
           </div>`;
         }).join('')}
       </div>
     </div>`;
+}
+
+function saveCalcSettings() {
+  const sp = parseFloat(document.getElementById('set-saleprice').value);
+  const ls = parseFloat(document.getElementById('set-livshipping').value);
+  if (!isNaN(sp) && sp > 0) { addLog(`Prix vente défaut : ${STATE.defaultSalePrice}€ → ${sp}€`, 'update'); STATE.defaultSalePrice = sp; }
+  if (!isNaN(ls) && ls >= 0) { addLog(`Coût livraison / paire : ${STATE.livShipping||0}€ → ${ls}€`, 'update'); STATE.livShipping = ls; }
+  saveState();
+  notify('Paramètres de calcul enregistrés ✓');
+  renderProduits();
+  renderDashboard();
 }
 
 function addColor() {
@@ -1289,6 +1421,131 @@ function removeSize(s) {
   if (STATE.pairs.some(p => p.size === s)) { alert('Cette taille est utilisée par des paires en stock.'); return; }
   STATE.sizes = STATE.sizes.filter(x => x !== s);
   saveState(); renderProduits();
+}
+
+// ============================================================
+// PERFORMANCE
+// ============================================================
+function renderPerformance() {
+  const s = stats();
+  const k = STATE.kenjy;
+  const isAdmin = currentRole === 'admin';
+
+  // Ventes attribuées à kenjy : logs de type vente par kenjy
+  const ventesKenjyLogs = STATE.logs.filter(l => l.user === 'kenjy' && l.tag === 'vente');
+  const nbVentes = ventesKenjyLogs.length;
+  const obj = k.primeObjectif || 10;
+  const pct = Math.min(100, Math.round((nbVentes / obj) * 100));
+  const primeAtteinte = nbVentes >= obj;
+
+  // Détail des ventes kenjy
+  const ventesDetail = ventesKenjyLogs.map(l => {
+    const d = new Date(l.ts);
+    const time = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
+    // Extraire l'ID de paire depuis le log
+    const match = l.action.match(/#(\d+)/);
+    const pairId = match ? parseInt(match[1]) : null;
+    const pair = pairId ? STATE.pairs.find(p => p.id === pairId) : null;
+    const prix = pair ? (pair.salePrice || STATE.defaultSalePrice) : STATE.defaultSalePrice;
+    return { time, action: l.action, prix };
+  });
+
+  const adminSection = isAdmin ? `
+    <div class="section" style="border:1px solid rgba(108,99,255,0.3)">
+      <div class="section-title" style="color:var(--accent2)">⚙ Paramètres admin — rémunération Kenjy</div>
+      <div class="form-row cols2" style="margin-bottom:0">
+        <div class="form-group">
+          <label>Salaire (€)</label>
+          <input type="number" class="form-input" id="kenjy-salaire" value="${k.salaire}" step="0.01" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Période</label>
+          <input type="text" class="form-input" id="kenjy-periode" value="${k.periodeLabel}" placeholder="ex: ce mois-ci">
+        </div>
+      </div>
+      <div class="form-row cols2" style="margin-top:12px;margin-bottom:0">
+        <div class="form-group">
+          <label>Objectif ventes pour prime</label>
+          <input type="number" class="form-input" id="kenjy-obj" value="${k.primeObjectif}" min="1">
+        </div>
+        <div class="form-group">
+          <label>Montant de la prime (€)</label>
+          <input type="number" class="form-input" id="kenjy-prime" value="${k.primeMontant}" step="0.01">
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" onclick="saveKenjySettings()">Enregistrer</button>
+        <span style="font-size:12px;color:var(--text3)">Ces paramètres sont visibles par Kenjy</span>
+      </div>
+    </div>` : '';
+
+  document.getElementById('performance-content').innerHTML = `
+    ${adminSection}
+
+    <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="stat-card">
+        <div class="stat-label">Salaire ${k.periodeLabel}</div>
+        <div class="stat-value" style="color:var(--accent2)">${k.salaire > 0 ? k.salaire.toFixed(2) + '€' : '—'}</div>
+        <div class="stat-sub">Défini par l'admin</div>
+      </div>
+      <div class="stat-card ${primeAtteinte ? 'green' : ''}">
+        <div class="stat-label">Prime</div>
+        <div class="stat-value" style="color:${primeAtteinte ? 'var(--green)' : 'var(--amber)'}">
+          ${primeAtteinte ? '✓ ' : ''}${k.primeMontant}€
+        </div>
+        <div class="stat-sub">${primeAtteinte ? 'Débloquée ! 🎉' : `Objectif : ${obj} ventes`}</div>
+      </div>
+      <div class="stat-card ${primeAtteinte ? 'green' : 'blue'}">
+        <div class="stat-label">Ventes réalisées</div>
+        <div class="stat-value">${nbVentes}</div>
+        <div class="stat-sub">sur ${obj} pour la prime</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Progression vers la prime</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px">
+        <span style="color:var(--text2)">${nbVentes} / ${obj} ventes</span>
+        <span style="color:${primeAtteinte ? 'var(--green)' : 'var(--accent2)'};font-weight:600">${pct}%</span>
+      </div>
+      <div class="progress-bar" style="height:14px;border-radius:8px">
+        <div class="progress-fill" style="width:${pct}%;background:${primeAtteinte ? 'var(--green)' : 'linear-gradient(90deg,var(--accent),var(--accent2))'};border-radius:8px"></div>
+      </div>
+      ${primeAtteinte ? `<div style="margin-top:12px;padding:12px 16px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-sm);color:var(--green);font-size:13px;font-weight:600">
+        🎉 Objectif atteint ! Prime de ${k.primeMontant}€ débloquée ${k.periodeLabel}.
+      </div>` : `<div style="margin-top:8px;font-size:12px;color:var(--text3)">
+        Plus que ${obj - nbVentes} vente(s) pour débloquer la prime de ${k.primeMontant}€
+      </div>`}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Ventes effectuées par Kenjy <span class="badge">${nbVentes}</span></div>
+      ${ventesDetail.length === 0
+        ? `<div style="color:var(--text3);text-align:center;padding:24px;font-size:13px">Aucune vente enregistrée par Kenjy pour le moment</div>`
+        : `<div class="table-scroll"><table>
+            <thead><tr><th>Date</th><th>Détail</th><th>Prix</th></tr></thead>
+            <tbody>${ventesDetail.map((v, i) => `
+              <tr>
+                <td style="font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap">${v.time}</td>
+                <td style="color:var(--text2)">${v.action}</td>
+                <td style="color:var(--green);font-family:var(--mono)">${v.prix.toFixed(2)}€</td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>`
+      }
+    </div>`;
+}
+
+function saveKenjySettings() {
+  const salaire = parseFloat(document.getElementById('kenjy-salaire').value) || 0;
+  const periode = document.getElementById('kenjy-periode').value.trim() || 'ce mois-ci';
+  const obj = parseInt(document.getElementById('kenjy-obj').value) || 10;
+  const prime = parseFloat(document.getElementById('kenjy-prime').value) || 0;
+  STATE.kenjy = { salaire, periodeLabel: periode, primeObjectif: obj, primeMontant: prime };
+  addLog(`Paramètres Kenjy mis à jour : salaire ${salaire}€, prime ${prime}€ pour ${obj} ventes`, 'update');
+  saveState();
+  notify('Paramètres Kenjy enregistrés ✓');
+  renderPerformance();
 }
 
 // ============================================================
