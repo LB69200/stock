@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resell HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #1a1a24;
+    --bg4: #22222f;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f5;
+    --text2: #9090a8;
+    --text3: #555568;
+    --accent: #6c63ff;
+    --accent2: #9b95ff;
+    --green: #22c55e;
+    --green2: #16a34a;
+    --red: #ef4444;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --teal: #14b8a6;
+    --font: 'Space Grotesk', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; min-height: 100vh; }
+
+  /* AUTH */
+  #auth-screen {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse at 20% 50%, rgba(108,99,255,0.08) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 20%, rgba(20,184,166,0.06) 0%, transparent 50%);
+  }
+  .auth-card {
+    width: 360px; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 20px; padding: 40px 36px;
+  }
+  .auth-logo { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; letter-spacing: -0.5px; }
+  .auth-logo span { color: var(--accent2); }
+  .auth-sub { color: var(--text3); font-size: 12px; margin-bottom: 32px; font-family: var(--mono); }
+  .auth-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+  .auth-input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); padding: 10px 14px;
+    font-family: var(--font); font-size: 14px; margin-bottom: 16px; outline: none;
+    transition: border-color 0.15s;
+  }
+  .auth-input:focus { border-color: var(--accent); }
+  .auth-btn {
+    width: 100%; background: var(--accent); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 12px; font-family: var(--font);
+    font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .auth-btn:hover { opacity: 0.88; }
+  .auth-error { color: var(--red); font-size: 12px; margin-top: 10px; display: none; }
+
+  /* LAYOUT */
+  #app { display: none; }
+
+  /* SIDEBAR DESKTOP */
+  .sidebar {
+    position: fixed; top: 0; left: 0; width: 220px; height: 100vh;
+    background: var(--bg2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 24px 0; z-index: 100;
+  }
+  .sidebar-logo { padding: 0 20px 24px; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .sidebar-logo span { color: var(--accent2); }
+  .sidebar-section { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; padding: 0 20px 8px; margin-top: 16px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 20px;
+    color: var(--text2); cursor: pointer; transition: all 0.15s; border-radius: 0;
+    font-size: 13.5px; font-weight: 500; position: relative;
+  }
+  .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .nav-item.active { color: var(--accent2); background: rgba(108,99,255,0.1); }
+  .nav-item.active::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; background: var(--accent2); border-radius: 0 2px 2px 0;
+  }
+  .nav-icon { font-size: 18px; width: 20px; text-align: center; }
+  .sidebar-bottom { margin-top: auto; padding: 0 20px; }
+  .user-badge {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink:0; }
+  .user-name { font-size: 13px; font-weight: 600; }
+  .user-role { font-size: 11px; color: var(--text3); }
+  .logout-btn {
+    width: 100%; margin-top: 8px; background: transparent; border: 1px solid var(--border);
+    color: var(--text2); border-radius: var(--radius-sm); padding: 8px;
+    font-family: var(--font); font-size: 12px; cursor: pointer; transition: all 0.15s;
+  }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* BOTTOM NAV MOBILE (caché sur desktop) */
+  .bottom-nav { display: none; }
+
+  .main-content { margin-left: 220px; padding: 28px 32px; min-height: 100vh; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .page-sub { color: var(--text2); font-size: 13px; margin-bottom: 20px; }
+
+  /* MOBILE */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .main-content { margin-left: 0; padding: 16px 14px 80px; }
+    .page-title { font-size: 18px; }
+    .page-sub { font-size: 12px; margin-bottom: 14px; }
+
+    /* Bottom nav */
+    .bottom-nav {
+      display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--bg2); border-top: 1px solid var(--border);
+      z-index: 200; padding: 6px 0 10px;
+    }
+    .bn-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 3px; padding: 4px 2px; cursor: pointer; color: var(--text3);
+      transition: color 0.15s; font-size: 9px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .bn-item .bn-icon { font-size: 20px; line-height: 1; }
+    .bn-item.active { color: var(--accent2); }
+    .bn-item:active { opacity: 0.7; }
+
+    /* Stat grid 2 cols */
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-card { padding: 12px 14px; }
+    .stat-value { font-size: 20px; }
+    .stat-label { font-size: 10px; }
+
+    /* Grids */
+    .two-col, .three-col { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Section */
+    .section { padding: 14px 14px; margin-bottom: 12px; }
+
+    /* Table scroll horizontal */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 420px; font-size: 12px; }
+    th { font-size: 9px; padding: 0 8px 8px; }
+    td { padding: 8px 8px; }
+
+    /* Filtres stock wrap */
+    .stock-filters { flex-wrap: wrap; gap: 6px; }
+    .stock-filters .btn { font-size: 11px; padding: 5px 8px; }
+
+    /* Forms cols → 1 col */
+    .form-row.cols2, .form-row.cols3 { grid-template-columns: 1fr; }
+
+    /* Modal full width */
+    .modal { padding: 20px 18px; border-radius: 16px 16px 0 0; width: 100%; max-width: 100%; margin-top: auto; }
+    .modal-overlay { align-items: flex-end; }
+
+    /* Actions grid */
+    .actions-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+
+    /* Notif repositionné */
+    #notif { top: auto; bottom: 80px; left: 14px; right: 14px; text-align: center; }
+
+    /* Charts moins hauts */
+    .chart-wrap[style*="220px"] { height: 180px !important; }
+  }
+
+  /* CARDS */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px 20px;
+  }
+  .stat-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+  .stat-value { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.amber .stat-value { color: var(--amber); }
+  .stat-card.blue .stat-value { color: var(--blue); }
+
+  /* SECTION */
+  .section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 20px; }
+  .section-title { font-size: 14px; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .section-title .badge {
+    font-size: 10px; font-family: var(--mono); background: var(--bg4);
+    border: 1px solid var(--border); color: var(--text2);
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); padding: 0 12px 10px; font-weight: 600; }
+  td { padding: 9px 12px; border-top: 1px solid var(--border); color: var(--text2); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-family: var(--mono); font-weight: 500;
+    padding: 3px 9px; border-radius: 20px;
+  }
+  .status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.7; }
+  .s-stock { background: rgba(34,197,94,0.12); color: var(--green); }
+  .s-livraison-moi { background: rgba(59,130,246,0.12); color: var(--blue); }
+  .s-livraison-client { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .s-commande { background: rgba(108,99,255,0.12); color: var(--accent2); }
+  .s-vendu { background: rgba(20,184,166,0.12); color: var(--teal); }
+  .s-arrive { background: rgba(34,197,94,0.15); color: #4ade80; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border-radius: var(--radius-sm); font-family: var(--font);
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; border: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #7c75ff; }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-green { background: rgba(34,197,94,0.1); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .btn-green:hover { background: rgba(34,197,94,0.2); }
+
+  /* FORMS */
+  .form-row { display: grid; gap: 12px; margin-bottom: 12px; }
+  .form-row.cols2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.6px; }
+  .form-input, .form-select {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text); padding: 8px 12px;
+    font-family: var(--font); font-size: 13px; outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: var(--bg3); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 28px 32px; width: 500px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* LOGS */
+  .log-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .log-time { font-family: var(--mono); color: var(--text3); white-space: nowrap; min-width: 90px; }
+  .log-user { font-weight: 600; color: var(--accent2); min-width: 60px; }
+  .log-action { color: var(--text2); flex: 1; }
+  .log-tag { font-size: 10px; padding: 1px 7px; border-radius: 10px; font-family: var(--mono); }
+  .tag-achat { background: rgba(108,99,255,0.12); color: var(--accent2); }
+  .tag-vente { background: rgba(20,184,166,0.12); color: var(--teal); }
+  .tag-livraison { background: rgba(59,130,246,0.12); color: var(--blue); }
+  .tag-update { background: rgba(245,158,11,0.12); color: var(--amber); }
+
+  /* PROGRESS BAR */
+  .progress-bar { background: var(--bg4); border-radius: 4px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+
+  /* CHART WRAPPER */
+  .chart-wrap { position: relative; width: 100%; }
+
+  /* ASSOC RESTRICTED */
+  .restricted-overlay {
+    display: flex; align-items: center; justify-content: center;
+    padding: 40px; text-align: center; color: var(--text3);
+    flex-direction: column; gap: 10px;
+  }
+
+  /* NOTIF */
+  #notif {
+    position: fixed; top: 20px; right: 20px; z-index: 9999;
+    background: var(--bg3); border: 1px solid var(--green);
+    color: var(--green); padding: 10px 18px; border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500; opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #notif.show { opacity: 1; }
+
+  /* COLOR DOT */
+  .color-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  /* TABLET */
+  @media (max-width: 1100px) and (min-width: 701px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col, .three-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="notif"></div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Resell <span>HQ</span></div>
+    <div class="auth-sub">// achat & revente dashboard</div>
+    <div class="auth-label">Identifiant</div>
+    <input type="text" class="auth-input" id="login-user" placeholder="utilisateur">
+    <div class="auth-label">Mot de passe</div>
+    <input type="password" class="auth-input" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="auth-btn" onclick="doLogin()">Connexion →</button>
+    <div class="auth-error" id="auth-error">Identifiants incorrects.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">Resell <span>HQ</span></div>
+    <div class="sidebar-section">Principal</div>
+    <div class="nav-item active" onclick="goPage('dashboard')"><span class="nav-icon">⬡</span>Dashboard</div>
+    <div class="nav-item" onclick="goPage('stock')"><span class="nav-icon">◫</span>Stock</div>
+    <div class="nav-item" onclick="goPage('analytics')" id="nav-analytics"><span class="nav-icon">◈</span>Analytique</div>
+    <div class="sidebar-section" id="nav-section-admin">Admin</div>
+    <div class="nav-item" onclick="goPage('actions')" id="nav-actions"><span class="nav-icon">⊕</span>Actions</div>
+    <div class="nav-item" onclick="goPage('produits')" id="nav-produits"><span class="nav-icon">◉</span>Produits</div>
+    <div class="nav-item" onclick="goPage('logs')" id="nav-logs"><span class="nav-icon">≡</span>Logs</div>
+    <div class="sidebar-bottom">
+      <div class="user-badge">
+        <div class="user-dot"></div>
+        <div>
+          <div class="user-name" id="user-display">—</div>
+          <div class="user-role" id="role-display">—</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV MOBILE -->
+  <nav class="bottom-nav" id="bottom-nav">
+    <div class="bn-item active" onclick="goPage('dashboard')" id="bn-dashboard">
+      <span class="bn-icon">⬡</span><span>Home</span>
+    </div>
+    <div class="bn-item" onclick="goPage('stock')" id="bn-stock">
+      <span class="bn-icon">◫</span><span>Stock</span>
+    </div>
+    <div class="bn-item" onclick="goPage('analytics')" id="bn-analytics">
+      <span class="bn-icon">◈</span><span>Stats</span>
+    </div>
+    <div class="bn-item" onclick="goPage('actions')" id="bn-actions">
+      <span class="bn-icon">⊕</span><span>Actions</span>
+    </div>
+    <div class="bn-item" onclick="goPage('logs')" id="bn-logs" style="display:none">
+      <span class="bn-icon">≡</span><span>Logs</span>
+    </div>
+    <div class="bn-item" onclick="logout()" style="color:var(--red)">
+      <span class="bn-icon">⏻</span><span>Exit</span>
+    </div>
+  </nav>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub" id="dash-sub">Vue d'ensemble en temps réel</div>
+      <div class="stat-grid" id="stat-grid"></div>
+      <div class="two-col">
+        <div class="section">
+          <div class="section-title">Répartition du stock <span class="badge" id="total-pairs-badge">16 paires</span></div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-stock" role="img" aria-label="Stock par coloris et taille"></canvas></div>
+        </div>
+        <div class="section">
+          <div class="section-title">Rentabilité par référence</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chart-benef" role="img" aria-label="Bénéfice par coloris"></canvas></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Seuil de rentabilité</div>
+        <div id="seuil-content"></div>
+      </div>
+    </div>
+
+    <!-- STOCK -->
+    <div class="page" id="page-stock">
+      <div class="page-title">Stock</div>
+      <div class="page-sub">Toutes les paires et leurs statuts</div>
+      <div class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div class="stock-filters" style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="filterStock('all')">Tout</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterStock('stock')">Stock</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterStock('livraison-moi')">→ moi</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterStock('livraison-client')">→ client</button>
+            <button class="btn btn-secondary btn-sm" onclick="filterStock('vendu')">Vendu</button>
+          </div>
+          <div id="stock-admin-btn"></div>
+        </div>
+        <div class="table-scroll" id="stock-table"></div>
+      </div>
+    </div>
+
+    <!-- ANALYTIQUE -->
+    <div class="page" id="page-analytics">
+      <div class="page-title">Analytique</div>
+      <div class="page-sub">Performance et projections</div>
+      <div id="analytics-content"></div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="page" id="page-actions">
+      <div class="page-title">Actions rapides</div>
+      <div class="page-sub">Enregistrer un événement</div>
+      <div id="actions-content"></div>
+    </div>
+
+    <!-- PRODUITS -->
+    <div class="page" id="page-produits">
+      <div class="page-title">Gestion produits</div>
+      <div class="page-sub">Ajouter des tailles, coloris et prix de vente</div>
+      <div id="produits-content"></div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="page" id="page-logs">
+      <div class="page-title">Journal d'activité</div>
+      <div class="page-sub">Toutes les actions enregistrées</div>
+      <div class="section" id="logs-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modal-status">
+  <div class="modal">
+    <div class="modal-title" id="modal-status-title">Modifier le statut</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nouveau statut</label>
+        <select class="form-select" id="modal-status-val">
+          <option value="commande">Commandé</option>
+          <option value="livraison-moi">En livraison (vers moi)</option>
+          <option value="stock">En stock (chez moi)</option>
+          <option value="livraison-client">En livraison (vers client)</option>
+          <option value="vendu">Vendu (livré au client)</option>
+          <option value="arrive">Arrivé chez le client</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" id="modal-price-row">
+      <div class="form-group">
+        <label>Prix de vente (€) — optionnel</label>
+        <input type="number" class="form-input" id="modal-status-price" placeholder="70">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-status')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmStatusChange()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-pair">
+  <div class="modal">
+    <div class="modal-title">Ajouter une paire</div>
+    <div class="form-row cols2">
+      <div class="form-group">
+        <label>Coloris</label>
+        <select class="form-select" id="add-color" onchange="updateColorInput()">
+          <option value="">— Choisir —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ou nouveau coloris</label>
+        <input type="text" class="form-input" id="add-color-new" placeholder="ex: noir">
+      </div>
+    </div>
+    <div class="form-row cols2">
+      <div class="form-group">
+        <label>Taille</label>
+        <select class="form-select" id="add-size" onchange="updateSizeInput()">
+          <option value="">— Choisir —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ou nouvelle taille</label>
+        <input type="text" class="form-input" id="add-size-new" placeholder="ex: 43">
+      </div>
+    </div>
+    <div class="form-row cols3">
+      <div class="form-group">
+        <label>Quantité</label>
+        <input type="number" class="form-input" id="add-qty" value="1" min="1">
+      </div>
+      <div class="form-group">
+        <label>Statut initial</label>
+        <select class="form-select" id="add-status">
+          <option value="commande">Commandé</option>
+          <option value="livraison-moi">Livraison → moi</option>
+          <option value="stock" selected>En stock</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Prix achat (€)</label>
+        <input type="number" class="form-input" id="add-cost" value="13.13" step="0.01">
+      </div>
+    </div>
+    <div class="form-row cols2">
+      <div class="form-group">
+        <label>Prix de vente (€) <span style="color:var(--text3);font-weight:400">— laisser vide = prix défaut</span></label>
+        <input type="number" class="form-input" id="add-sale-price" placeholder="${STATE.defaultSalePrice}" step="0.01">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <div style="font-size:12px;color:var(--text3);padding-bottom:10px">Prix défaut actuel : <strong style="color:var(--accent2)" id="add-default-price-display">70€</strong></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-pair')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmAddPair()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA STORE
+// ============================================================
+const ACCOUNTS = {
+  'admin': { pass: 'Dutavessadic69@', role: 'admin', display: 'Admin' },
+  'kenjy':  { pass: 'kenjy',           role: 'assoc', display: 'Kenjy' }
+};
+
+const COSTS = {
+  livraison1: 113.97,
+  livraison2: 143.02,
+  totalAchat: 216.46,
+  prixPaire: 13.13
+};
+
+const COLOR_MAP = { beige: '#d4b896', gris: '#9ca3af', noir: '#374151', blanc: '#e5e7eb', marron: '#92400e' };
+
+function getColor(c) { return COLOR_MAP[c] || '#6c63ff'; }
+
+let currentUser = null;
+let currentRole = null;
+let selectedPairId = null;
+let stockFilter = 'all';
+
+function loadState() {
+  const raw = localStorage.getItem('rhq_state');
+  if (raw) return JSON.parse(raw);
+  return initState();
+}
+
+function initState() {
+  const pairs = [];
+  let id = 1;
+  const base = [
+    { color: 'beige', size: '40', qty: 3 },
+    { color: 'beige', size: '41', qty: 3 },
+    { color: 'beige', size: '42', qty: 2 },
+    { color: 'gris',  size: '40', qty: 2 },
+    { color: 'gris',  size: '41', qty: 3 },
+    { color: 'gris',  size: '42', qty: 3 },
+  ];
+  base.forEach(b => {
+    for (let i = 0; i < b.qty; i++) {
+      pairs.push({ id: id++, color: b.color, size: b.size, status: 'stock', cost: 13.13, salePrice: null, soldAt: null });
+    }
+  });
+  return {
+    pairs,
+    defaultSalePrice: 70,
+    colors: ['beige', 'gris'],
+    sizes: ['39', '40', '41', '42', '43'],
+    logs: [{ ts: Date.now(), user: 'admin', action: 'Initialisation du stock (16 paires Birkenstock)', tag: 'update' }]
+  };
+}
+
+let STATE = loadState();
+
+function saveState() { localStorage.setItem('rhq_state', JSON.stringify(STATE)); }
+
+function addLog(action, tag = 'update') {
+  STATE.logs.unshift({ ts: Date.now(), user: currentUser || '—', action, tag });
+  if (STATE.logs.length > 200) STATE.logs.pop();
+  saveState();
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const acc = ACCOUNTS[u];
+  if (acc && acc.pass === p) {
+    currentUser = u;
+    currentRole = acc.role;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-display').textContent = acc.display;
+    document.getElementById('role-display').textContent = acc.role === 'admin' ? 'Administrateur' : 'Associé';
+    if (currentRole !== 'admin') {
+      document.getElementById('nav-produits').style.display = 'none';
+      document.getElementById('nav-section-admin').style.display = 'none';
+      // kenjy a accès aux logs
+    }
+    // Bottom nav : afficher logs pour tous, masquer produits toujours (admin seulement via sidebar)
+    const bnLogs = document.getElementById('bn-logs');
+    if (bnLogs) bnLogs.style.display = 'flex';
+    renderDashboard();
+    addLog('Connexion', 'update');
+  } else {
+    document.getElementById('auth-error').style.display = 'block';
+  }
+}
+
+function logout() {
+  addLog('Déconnexion', 'update');
+  currentUser = null; currentRole = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  const navMap = { dashboard: 0, stock: 1, analytics: 2, actions: 3, produits: 4, logs: 5 };
+  document.querySelectorAll('.nav-item')[navMap[name]]?.classList.add('active');
+  const bn = document.getElementById('bn-' + name);
+  if (bn) bn.classList.add('active');
+  if (name === 'analytics') renderAnalytics();
+  if (name === 'stock') renderStock();
+  if (name === 'actions') renderActions();
+  if (name === 'produits') renderProduits();
+  if (name === 'logs') renderLogs();
+  if (name === 'dashboard') renderDashboard();
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n) { return n.toFixed(2).replace('.', ',') + ' €'; }
+function fmtShort(n) { return (n >= 0 ? '+' : '') + n.toFixed(2).replace('.', ',') + ' €'; }
+
+function stats() {
+  const all = STATE.pairs;
+  const total = all.length;
+  const enStock = all.filter(p => p.status === 'stock').length;
+  const enLivMoi = all.filter(p => p.status === 'livraison-moi').length;
+  const enLivClient = all.filter(p => p.status === 'livraison-client').length;
+  const vendus = all.filter(p => ['vendu','arrive'].includes(p.status));
+  const commandes = all.filter(p => p.status === 'commande').length;
+  const revenusActuels = vendus.reduce((s, p) => s + (p.salePrice || STATE.defaultSalePrice), 0);
+  const coutAchat = all.reduce((s, p) => s + p.cost, 0);
+  const depenses = COSTS.totalAchat + COSTS.livraison1 + COSTS.livraison2;
+  const benefActuel = revenusActuels - (vendus.length * 13.13);
+  const restants = all.filter(p => !['vendu','arrive'].includes(p.status));
+  const benefPotentiel = restants.reduce((s, p) => s + (STATE.defaultSalePrice - p.cost), 0);
+  const benefTotal = benefActuel + benefPotentiel;
+  const manque = Math.max(0, depenses - revenusActuels);
+  const pairesManquantes = Math.ceil(manque / (STATE.defaultSalePrice - 13.13));
+  return { total, enStock, enLivMoi, enLivClient, vendus: vendus.length, commandes, revenusActuels, coutAchat, benefActuel, benefPotentiel, benefTotal, depenses, manque, pairesManquantes };
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+let chartStock = null, chartBenef = null;
+
+function renderDashboard() {
+  const s = stats();
+  const grid = document.getElementById('stat-grid');
+  const benefParPaire = STATE.defaultSalePrice - 13.13;
+  const benefNetUnitaire = benefParPaire;
+  grid.innerHTML = `
+    <div class="stat-card green">
+      <div class="stat-label">Bénéfice actuel</div>
+      <div class="stat-value">${s.benefActuel >= 0 ? '+' : ''}${s.benefActuel.toFixed(0)}€</div>
+      <div class="stat-sub">${s.vendus} paire(s) vendue(s)</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Bénéfice total projeté</div>
+      <div class="stat-value">${s.benefTotal >= 0 ? '+' : ''}${s.benefTotal.toFixed(0)}€</div>
+      <div class="stat-sub">si tout vendu à ${STATE.defaultSalePrice}€</div>
+    </div>
+    <div class="stat-card amber">
+      <div class="stat-label">Il manque</div>
+      <div class="stat-value">${s.manque.toFixed(0)}€</div>
+      <div class="stat-sub">${s.pairesManquantes} paire(s) à vendre</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bénéf / paire (à ${STATE.defaultSalePrice}€)</div>
+      <div class="stat-value" style="color:var(--green)">+${benefNetUnitaire.toFixed(2)}€</div>
+      <div class="stat-sub">${s.enStock} en stock dispo</div>
+    </div>`;
+
+  document.getElementById('total-pairs-badge').textContent = STATE.pairs.length + ' paires';
+
+  renderChartStock();
+  renderChartBenef();
+  renderSeuil();
+}
+
+function renderChartStock() {
+  const ctx = document.getElementById('chart-stock').getContext('2d');
+  if (chartStock) chartStock.destroy();
+  const grouped = {};
+  STATE.pairs.forEach(p => {
+    const k = p.color + ' ' + p.size;
+    grouped[k] = (grouped[k] || 0) + 1;
+  });
+  const labels = Object.keys(grouped);
+  const data = Object.values(grouped);
+  const colors = labels.map(l => getColor(l.split(' ')[0]));
+  chartStock = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Paires', data, backgroundColor: colors, borderRadius: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#9090a8', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#9090a8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function renderChartBenef() {
+  const ctx = document.getElementById('chart-benef').getContext('2d');
+  if (chartBenef) chartBenef.destroy();
+  const colorGroups = {};
+  STATE.pairs.forEach(p => {
+    if (!colorGroups[p.color]) colorGroups[p.color] = { qty: 0, vendu: 0, revenue: 0 };
+    colorGroups[p.color].qty++;
+    if (['vendu','arrive'].includes(p.status)) {
+      colorGroups[p.color].vendu++;
+      colorGroups[p.color].revenue += (p.salePrice || STATE.defaultSalePrice);
+    }
+  });
+  const labels = Object.keys(colorGroups);
+  const benefProj = labels.map(c => {
+    const g = colorGroups[c];
+    return (g.qty * STATE.defaultSalePrice) - (g.qty * 13.13);
+  });
+  const benefActuel = labels.map(c => {
+    const g = colorGroups[c];
+    return g.revenue - (g.vendu * 13.13);
+  });
+  chartBenef = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Bénéf actuel', data: benefActuel, backgroundColor: '#22c55e', borderRadius: 6 },
+        { label: 'Bénéf projeté', data: benefProj, backgroundColor: 'rgba(108,99,255,0.4)', borderRadius: 6 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#9090a8', font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { color: '#9090a8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { color: '#9090a8', callback: v => v + '€' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function renderSeuil() {
+  const s = stats();
+  const pct = Math.min(100, (s.revenusActuels / s.depenses) * 100);
+  document.getElementById('seuil-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+      <span style="color:var(--text2)">Revenus actuels : <strong style="color:var(--text)">${fmt(s.revenusActuels)}</strong></span>
+      <span style="color:var(--text2)">Coût total : <strong style="color:var(--amber)">${fmt(s.depenses)}</strong></span>
+      <span style="color:var(--text2)">${pct.toFixed(1)}% atteint</span>
+    </div>
+    <div class="progress-bar" style="height:10px">
+      <div class="progress-fill" style="width:${pct}%;background:${pct >= 100 ? 'var(--green)' : 'var(--accent)'}"></div>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--text3)">
+      Coût total = Achat 16 paires ${fmt(COSTS.totalAchat)} + Livraison 1 ${fmt(COSTS.livraison1)} + Livraison 2 ${fmt(COSTS.livraison2)}
+      = <strong style="color:var(--text2)">${fmt(s.depenses)}</strong>
+    </div>`;
+}
+
+// ============================================================
+// STOCK
+// ============================================================
+const STATUS_LABELS = {
+  'commande': ['s-commande', 'Commandé'],
+  'livraison-moi': ['s-livraison-moi', 'Livraison → moi'],
+  'stock': ['s-stock', 'En stock'],
+  'livraison-client': ['s-livraison-client', 'Livraison → client'],
+  'vendu': ['s-vendu', 'Vendu'],
+  'arrive': ['s-arrive', 'Arrivé client']
+};
+
+function filterStock(f) { stockFilter = f; renderStock(); }
+
+function renderStock() {
+  const isAdmin = currentRole === 'admin';
+  const btn = document.getElementById('stock-admin-btn');
+  btn.innerHTML = isAdmin ? `<button class="btn btn-primary btn-sm" onclick="openAddPair()">+ Ajouter une paire</button>` : '';
+
+  const pairs = stockFilter === 'all' ? STATE.pairs : STATE.pairs.filter(p => p.status === stockFilter);
+  const rows = pairs.map(p => {
+    const [cls, lbl] = STATUS_LABELS[p.status] || ['', p.status];
+    const dot = `<span class="color-dot" style="background:${getColor(p.color)}"></span>`;
+    const effectivePrice = p.salePrice || STATE.defaultSalePrice;
+    const isDefault = !p.salePrice;
+    const priceDisplay = isDefault
+      ? `<span style="color:var(--text3)">${effectivePrice}€ <span style="font-size:10px">(défaut)</span></span>`
+      : `<span style="color:var(--accent2);font-weight:600">${effectivePrice}€</span>`;
+    const benef = effectivePrice - p.cost;
+    const benefDisplay = `<span style="color:${benef >= 0 ? 'var(--green)' : 'var(--red)'};font-family:var(--mono)">${fmtShort(benef)}</span>`;
+    const editPriceBtn = isAdmin ? `<button class="btn btn-secondary btn-sm" style="margin-right:4px" onclick="editPairPrice(${p.id})">💰</button>` : '';
+    const canAct = isAdmin || (currentRole === 'assoc' && ['livraison-moi','stock','livraison-client'].includes(p.status));
+    const actBtn = canAct ? `<button class="btn btn-secondary btn-sm" onclick="openStatusModal(${p.id})">Statut</button>` : '';
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--text3);font-size:11px">#${p.id}</td>
+      <td>${dot}${p.color}</td>
+      <td style="font-weight:600">${p.size}</td>
+      <td><span class="status ${cls}">${lbl}</span></td>
+      <td>${priceDisplay}</td>
+      <td style="white-space:nowrap">${editPriceBtn}${actBtn}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('stock-table').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>ID</th><th>Coloris</th><th>Taille</th><th>Statut</th><th>Prix vente</th><th>Action</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px">Aucune paire</td></tr>'}</tbody>
+    </table>`;
+}
+
+function editPairPrice(id) {
+  const p = STATE.pairs.find(x => x.id === id);
+  if (!p) return;
+  const current = p.salePrice || STATE.defaultSalePrice;
+  const newVal = prompt(`Paire #${id} — ${p.color} / ${p.size}\nPrix de vente actuel : ${current}€\nNouveau prix (laisser vide = revenir au prix défaut) :`);
+  if (newVal === null) return;
+  if (newVal.trim() === '') {
+    p.salePrice = null;
+    addLog(`Paire #${p.id} (${p.color}/${p.size}) : prix remis au défaut (${STATE.defaultSalePrice}€)`, 'update');
+  } else {
+    const parsed = parseFloat(newVal);
+    if (isNaN(parsed) || parsed <= 0) { alert('Prix invalide.'); return; }
+    const old = p.salePrice || STATE.defaultSalePrice;
+    p.salePrice = parsed;
+    addLog(`Paire #${p.id} (${p.color}/${p.size}) : prix de vente ${old}€ → ${parsed}€`, 'update');
+  }
+  saveState();
+  notify('Prix mis à jour ✓');
+  renderStock();
+  renderDashboard();
+}
+
+function openStatusModal(id) {
+  selectedPairId = id;
+  const p = STATE.pairs.find(x => x.id === id);
+  document.getElementById('modal-status-title').textContent = `Paire #${id} — ${p.color} / ${p.size}`;
+  // Options selon rôle
+  const allOpts = [
+    { v: 'commande',          l: 'Commandé',                  adminOnly: true },
+    { v: 'livraison-moi',     l: 'En livraison (vers moi)',   adminOnly: false },
+    { v: 'stock',             l: 'En stock (chez moi)',        adminOnly: false },
+    { v: 'livraison-client',  l: 'En livraison (vers client)', adminOnly: false },
+    { v: 'vendu',             l: 'Vendu',                      adminOnly: true },
+    { v: 'arrive',            l: 'Arrivé chez le client',      adminOnly: false },
+  ];
+  const opts = allOpts
+    .filter(o => currentRole === 'admin' || !o.adminOnly)
+    .map(o => `<option value="${o.v}"${o.v === p.status ? ' selected' : ''}>${o.l}</option>`)
+    .join('');
+  document.getElementById('modal-status-val').innerHTML = opts;
+  document.getElementById('modal-status-price').value = p.salePrice || '';
+  // Prix de vente visible seulement pour admin
+  document.getElementById('modal-price-row').style.display = currentRole === 'admin' ? 'block' : 'none';
+  document.getElementById('modal-status').classList.add('open');
+}
+
+function confirmStatusChange() {
+  const p = STATE.pairs.find(x => x.id === selectedPairId);
+  if (!p) return;
+  const oldStatus = p.status;
+  p.status = document.getElementById('modal-status-val').value;
+  const priceVal = parseFloat(document.getElementById('modal-status-price').value);
+  if (!isNaN(priceVal)) p.salePrice = priceVal;
+  if (['vendu','arrive'].includes(p.status) && !p.soldAt) p.soldAt = Date.now();
+  addLog(`Paire #${p.id} (${p.color} / ${p.size}) : ${oldStatus} → ${p.status}`, p.status === 'vendu' ? 'vente' : 'livraison');
+  saveState();
+  closeModal('modal-status');
+  notify('Statut mis à jour ✓');
+  renderStock();
+  renderDashboard();
+}
+
+// ============================================================
+// ADD PAIR
+// ============================================================
+function openAddPair() {
+  const cSel = document.getElementById('add-color');
+  const sSel = document.getElementById('add-size');
+  cSel.innerHTML = '<option value="">— Existant —</option>' + STATE.colors.map(c => `<option value="${c}">${c}</option>`).join('');
+  sSel.innerHTML = '<option value="">— Existante —</option>' + STATE.sizes.map(s => `<option value="${s}">${s}</option>`).join('');
+  const dp = document.getElementById('add-default-price-display');
+  if (dp) dp.textContent = STATE.defaultSalePrice + '€';
+  const spInp = document.getElementById('add-sale-price');
+  if (spInp) spInp.placeholder = STATE.defaultSalePrice;
+  document.getElementById('modal-add-pair').classList.add('open');
+}
+
+function confirmAddPair() {
+  const color = document.getElementById('add-color-new').value.trim().toLowerCase() || document.getElementById('add-color').value;
+  const size  = document.getElementById('add-size-new').value.trim()  || document.getElementById('add-size').value;
+  const qty   = parseInt(document.getElementById('add-qty').value) || 1;
+  const status = document.getElementById('add-status').value;
+  const cost = parseFloat(document.getElementById('add-cost').value) || 13.13;
+  const salePriceRaw = parseFloat(document.getElementById('add-sale-price').value);
+  const salePrice = isNaN(salePriceRaw) ? null : salePriceRaw;
+  if (!color || !size) { alert('Coloris et taille requis.'); return; }
+  if (!STATE.colors.includes(color)) STATE.colors.push(color);
+  if (!STATE.sizes.includes(size)) STATE.sizes.push(size);
+  const maxId = STATE.pairs.reduce((m, p) => Math.max(m, p.id), 0);
+  for (let i = 0; i < qty; i++) {
+    STATE.pairs.push({ id: maxId + i + 1, color, size, status, cost, salePrice, soldAt: null });
+  }
+  const priceInfo = salePrice ? ` — prix vente : ${salePrice}€` : '';
+  addLog(`Ajout de ${qty} paire(s) ${color} / ${size} (statut: ${status}${priceInfo})`, 'achat');
+  saveState();
+  closeModal('modal-add-pair');
+  document.getElementById('add-sale-price').value = '';
+  notify(`${qty} paire(s) ajoutée(s) ✓`);
+  renderDashboard();
+  renderStock();
+}
+
+// ============================================================
+// ANALYTICS
+// ============================================================
+let chartRentab = null, chartTaille = null;
+
+function renderAnalytics() {
+  const s = stats();
+  const colorStats = {};
+  STATE.pairs.forEach(p => {
+    if (!colorStats[p.color]) colorStats[p.color] = { total: 0, vendu: 0, revenu: 0, cout: 0 };
+    colorStats[p.color].total++;
+    colorStats[p.color].cout += p.cost;
+    if (['vendu','arrive'].includes(p.status)) {
+      colorStats[p.color].vendu++;
+      colorStats[p.color].revenu += (p.salePrice || STATE.defaultSalePrice);
+    }
+  });
+
+  const sizeStats = {};
+  STATE.pairs.forEach(p => {
+    if (!sizeStats[p.size]) sizeStats[p.size] = { total: 0, vendu: 0, benef: 0 };
+    sizeStats[p.size].total++;
+    if (['vendu','arrive'].includes(p.status)) {
+      sizeStats[p.size].vendu++;
+      sizeStats[p.size].benef += (p.salePrice || STATE.defaultSalePrice) - p.cost;
+    }
+  });
+
+  document.getElementById('analytics-content').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card green">
+        <div class="stat-label">Revenu total actuel</div>
+        <div class="stat-value">${s.revenusActuels.toFixed(0)}€</div>
+        <div class="stat-sub">${s.vendus} vente(s)</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Prix de vente moyen</div>
+        <div class="stat-value">${STATE.defaultSalePrice}€</div>
+        <div class="stat-sub">configurable</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Marge par paire</div>
+        <div class="stat-value">${(STATE.defaultSalePrice - 13.13).toFixed(2)}€</div>
+        <div class="stat-sub">${(((STATE.defaultSalePrice - 13.13) / STATE.defaultSalePrice) * 100).toFixed(1)}% marge</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Coût total investi</div>
+        <div class="stat-value">${(COSTS.totalAchat + COSTS.livraison1 + COSTS.livraison2).toFixed(0)}€</div>
+        <div class="stat-sub">achat + 2 livraisons</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="section">
+        <div class="section-title">Bénéfice projeté par coloris (prix : ${STATE.defaultSalePrice}€/paire)</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-rentab-color" role="img" aria-label="Rentabilité par coloris"></canvas></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Ventes par taille</div>
+        <div class="chart-wrap" style="height:240px"><canvas id="chart-taille" role="img" aria-label="Ventes par taille"></canvas></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Détail par coloris</div>
+      <table>
+        <thead><tr><th>Coloris</th><th>Total</th><th>Vendus</th><th>Revenu actuel</th><th>Bénéf actuel</th><th>Bénéf projeté total</th></tr></thead>
+        <tbody>
+          ${Object.entries(colorStats).map(([c, g]) => {
+            const proj = g.total * (STATE.defaultSalePrice - 13.13);
+            const actual = g.revenu - (g.vendu * 13.13);
+            return `<tr>
+              <td><span class="color-dot" style="background:${getColor(c)}"></span>${c}</td>
+              <td>${g.total}</td>
+              <td>${g.vendu}</td>
+              <td style="color:var(--green)">${fmt(g.revenu)}</td>
+              <td style="color:${actual >= 0 ? 'var(--green)' : 'var(--red)'}">${fmtShort(actual)}</td>
+              <td style="color:var(--accent2)">${fmtShort(proj)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+
+  setTimeout(() => {
+    const ctx1 = document.getElementById('chart-rentab-color');
+    const ctx2 = document.getElementById('chart-taille');
+    if (!ctx1 || !ctx2) return;
+
+    const colorKeys = Object.keys(colorStats);
+    const projData = colorKeys.map(c => colorStats[c].total * (STATE.defaultSalePrice - 13.13));
+    new Chart(ctx1.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: colorKeys, datasets: [{ data: projData, backgroundColor: colorKeys.map(getColor), borderWidth: 2, borderColor: '#111118' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#9090a8' } } } }
+    });
+
+    const sizeKeys = Object.keys(sizeStats).sort();
+    new Chart(ctx2.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: sizeKeys,
+        datasets: [
+          { label: 'Total', data: sizeKeys.map(k => sizeStats[k].total), backgroundColor: 'rgba(108,99,255,0.35)', borderRadius: 6 },
+          { label: 'Vendus', data: sizeKeys.map(k => sizeStats[k].vendu), backgroundColor: '#22c55e', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#9090a8', font: { size: 11 } } } },
+        scales: {
+          x: { ticks: { color: '#9090a8' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color: '#9090a8', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+  }, 100);
+}
+
+// ============================================================
+// ACTIONS
+// ============================================================
+function renderActions() {
+  const isAdmin = currentRole === 'admin';
+  document.getElementById('actions-content').innerHTML = `
+    <div class="three-col">
+      ${isAdmin ? `
+      <div class="section" style="cursor:pointer" onclick="quickAction('achat')">
+        <div style="font-size:28px;margin-bottom:10px">📦</div>
+        <div style="font-weight:600;margin-bottom:4px">Achat / Réception</div>
+        <div style="color:var(--text3);font-size:12px">Enregistrer l'achat de nouvelles paires</div>
+      </div>` : ''}
+      <div class="section" style="cursor:pointer" onclick="quickAction('livraison-moi')">
+        <div style="font-size:28px;margin-bottom:10px">🚚</div>
+        <div style="font-weight:600;margin-bottom:4px">Livraison reçue</div>
+        <div style="color:var(--text3);font-size:12px">Commande arrivée chez moi</div>
+      </div>
+      ${isAdmin ? `
+      <div class="section" style="cursor:pointer" onclick="quickAction('livraison-client')">
+        <div style="font-size:28px;margin-bottom:10px">📬</div>
+        <div style="font-weight:600;margin-bottom:4px">Expédié au client</div>
+        <div style="color:var(--text3);font-size:12px">Paire envoyée vers l'acheteur</div>
+      </div>
+      <div class="section" style="cursor:pointer" onclick="quickAction('vendu')">
+        <div style="font-size:28px;margin-bottom:10px">💸</div>
+        <div style="font-weight:600;margin-bottom:4px">Vente réalisée</div>
+        <div style="color:var(--text3);font-size:12px">Marquer une paire comme vendue</div>
+      </div>
+      <div class="section" style="cursor:pointer" onclick="openPriceModal()">
+        <div style="font-size:28px;margin-bottom:10px">🏷️</div>
+        <div style="font-weight:600;margin-bottom:4px">Changer prix de vente</div>
+        <div style="color:var(--text3);font-size:12px">Prix par défaut : ${STATE.defaultSalePrice}€</div>
+      </div>` : ''}
+      <div class="section" style="cursor:pointer" onclick="quickAction('arrive')">
+        <div style="font-size:28px;margin-bottom:10px">✅</div>
+        <div style="font-weight:600;margin-bottom:4px">Arrivé chez le client</div>
+        <div style="color:var(--text3);font-size:12px">Confirmer réception acheteur</div>
+      </div>
+    </div>
+    <div id="quick-form"></div>`;
+}
+
+function quickAction(type) {
+  const matching = STATE.pairs.filter(p => {
+    if (type === 'livraison-moi') return p.status === 'livraison-moi';
+    if (type === 'livraison-client') return p.status === 'stock';
+    if (type === 'vendu') return p.status === 'stock';
+    if (type === 'arrive') return p.status === 'livraison-client';
+    if (type === 'achat') return true;
+    return true;
+  });
+  const opts = matching.map(p => `<option value="${p.id}">#${p.id} — ${p.color} / ${p.size} (${STATUS_LABELS[p.status]?.[1] || p.status})</option>`).join('');
+  const typeLabels = {
+    'livraison-moi': 'Marquer comme reçu chez moi',
+    'livraison-client': 'Marquer comme expédié au client',
+    'vendu': 'Marquer comme vendu',
+    'arrive': 'Marquer comme arrivé client',
+    'achat': 'Ajouter des paires'
+  };
+  if (type === 'achat') { openAddPair(); return; }
+  if (!matching.length) { notify('Aucune paire éligible pour cette action.'); return; }
+  document.getElementById('quick-form').innerHTML = `
+    <div class="section" style="margin-top:16px">
+      <div class="section-title">${typeLabels[type]}</div>
+      <div class="form-row cols2">
+        <div class="form-group">
+          <label>Paire concernée</label>
+          <select class="form-select" id="qf-pair">${opts}</select>
+        </div>
+        ${type === 'vendu' ? `<div class="form-group"><label>Prix de vente (€)</label><input type="number" class="form-input" id="qf-price" value="${STATE.defaultSalePrice}"></div>` : ''}
+      </div>
+      <button class="btn btn-primary" onclick="doQuickAction('${type}')">Confirmer</button>
+    </div>`;
+}
+
+function doQuickAction(type) {
+  const id = parseInt(document.getElementById('qf-pair').value);
+  const p = STATE.pairs.find(x => x.id === id);
+  if (!p) return;
+  const statusMap = {
+    'livraison-moi': 'stock',
+    'livraison-client': 'livraison-client',
+    'vendu': 'vendu',
+    'arrive': 'arrive'
+  };
+  const newStatus = statusMap[type];
+  const old = p.status;
+  p.status = newStatus;
+  if (type === 'vendu') {
+    const price = parseFloat(document.getElementById('qf-price')?.value) || STATE.defaultSalePrice;
+    p.salePrice = price;
+    p.soldAt = Date.now();
+  }
+  const tag = type === 'vendu' ? 'vente' : 'livraison';
+  addLog(`Action [${type}] → Paire #${p.id} (${p.color} / ${p.size}) : ${old} → ${newStatus}`, tag);
+  saveState();
+  notify('Action enregistrée ✓');
+  renderActions();
+  renderDashboard();
+}
+
+function openPriceModal() {
+  const newPrice = prompt(`Prix de vente par défaut actuel : ${STATE.defaultSalePrice}€\nNouveau prix :`);
+  const parsed = parseFloat(newPrice);
+  if (!isNaN(parsed) && parsed > 0) {
+    const old = STATE.defaultSalePrice;
+    STATE.defaultSalePrice = parsed;
+    addLog(`Prix de vente par défaut modifié : ${old}€ → ${parsed}€`, 'update');
+    saveState();
+    notify(`Prix mis à jour : ${parsed}€ ✓`);
+    renderDashboard();
+    renderActions();
+  }
+}
+
+// ============================================================
+// PRODUITS
+// ============================================================
+function renderProduits() {
+  if (currentRole !== 'admin') {
+    document.getElementById('produits-content').innerHTML = `<div class="section"><div class="restricted-overlay">🔒<br>Accès réservé à l'administrateur</div></div>`;
+    return;
+  }
+  document.getElementById('produits-content').innerHTML = `
+    <div class="two-col">
+      <div class="section">
+        <div class="section-title">Coloris disponibles</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          ${STATE.colors.map(c => `
+            <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:13px">
+              <span style="width:10px;height:10px;border-radius:50%;background:${getColor(c)}"></span>${c}
+              <span style="cursor:pointer;color:var(--red);margin-left:4px" onclick="removeColor('${c}')">×</span>
+            </span>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-input" id="new-color-inp" placeholder="Nouveau coloris..." style="flex:1">
+          <button class="btn btn-primary" onclick="addColor()">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Tailles disponibles</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+          ${STATE.sizes.sort().map(s => `
+            <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:13px">
+              ${s}<span style="cursor:pointer;color:var(--red);margin-left:4px" onclick="removeSize('${s}')">×</span>
+            </span>`).join('')}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-input" id="new-size-inp" placeholder="Nouvelle taille..." style="flex:1">
+          <button class="btn btn-primary" onclick="addSize()">+ Ajouter</button>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Prix de vente par référence</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+        ${[...new Set(STATE.pairs.map(p => p.color + '_' + p.size))].sort().map(key => {
+          const [c, sz] = key.split('_');
+          const pairs = STATE.pairs.filter(p => p.color === c && p.size === sz);
+          const withPrice = pairs.filter(p => p.salePrice);
+          const avgPrice = withPrice.length ? (withPrice.reduce((s,p) => s + p.salePrice, 0) / withPrice.length).toFixed(2) : STATE.defaultSalePrice;
+          const benef = (parseFloat(avgPrice) - 13.13) * pairs.length;
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+              <span class="color-dot" style="background:${getColor(c)}"></span>
+              <span style="font-weight:600">${c} / ${sz}</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:auto">${pairs.length} paire(s)</span>
+            </div>
+            <div style="font-size:12px;color:var(--text2)">Prix moy : <strong style="color:var(--text)">${avgPrice}€</strong></div>
+            <div style="font-size:12px;color:var(--green)">Bénéf projeté : ${fmtShort(benef)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function addColor() {
+  const val = document.getElementById('new-color-inp').value.trim().toLowerCase();
+  if (!val || STATE.colors.includes(val)) return;
+  STATE.colors.push(val);
+  addLog(`Coloris "${val}" ajouté`, 'update');
+  saveState();
+  renderProduits();
+}
+
+function removeColor(c) {
+  if (STATE.pairs.some(p => p.color === c)) { alert('Ce coloris est utilisé par des paires en stock.'); return; }
+  STATE.colors = STATE.colors.filter(x => x !== c);
+  saveState(); renderProduits();
+}
+
+function addSize() {
+  const val = document.getElementById('new-size-inp').value.trim();
+  if (!val || STATE.sizes.includes(val)) return;
+  STATE.sizes.push(val);
+  addLog(`Taille "${val}" ajoutée`, 'update');
+  saveState();
+  renderProduits();
+}
+
+function removeSize(s) {
+  if (STATE.pairs.some(p => p.size === s)) { alert('Cette taille est utilisée par des paires en stock.'); return; }
+  STATE.sizes = STATE.sizes.filter(x => x !== s);
+  saveState(); renderProduits();
+}
+
+// ============================================================
+// LOGS
+// ============================================================
+function renderLogs() {
+  const items = STATE.logs.map(l => {
+    const d = new Date(l.ts);
+    const time = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="log-item">
+      <span class="log-time">${time}</span>
+      <span class="log-user">${l.user}</span>
+      <span class="log-action">${l.action}</span>
+      <span class="log-tag tag-${l.tag}">${l.tag}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('logs-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600">Journal d'activité <span class="badge" style="background:var(--bg4);border:1px solid var(--border);color:var(--text2);font-size:10px;padding:2px 8px;border-radius:20px;font-family:var(--mono);margin-left:6px">${STATE.logs.length} entrées</span></div>
+    </div>
+    ${items || '<div style="color:var(--text3);text-align:center;padding:24px">Aucun log</div>'}`;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function updateColorInput() {}
+function updateSizeInput() {}
+
+function notify(msg) {
+  const n = document.getElementById('notif');
+  n.textContent = msg;
+  n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 2200);
+}
+
+// ENTER key sur login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>
