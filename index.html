@@ -692,7 +692,6 @@ function doLogin() {
     document.getElementById('user-display').textContent = acc.display;
     document.getElementById('role-display').textContent = acc.role === 'admin' ? 'Administrateur' : 'Associé';
     if (currentRole !== 'admin') {
-      document.getElementById('nav-produits').style.display = 'none';
       document.getElementById('nav-section-admin').style.display = 'none';
     }
     const bnLogs = document.getElementById('bn-logs');
@@ -935,7 +934,7 @@ function filterStock(f) { stockFilter = f; renderStock(); }
 function renderStock() {
   const isAdmin = currentRole === 'admin';
   const btn = document.getElementById('stock-admin-btn');
-  btn.innerHTML = isAdmin ? `<button class="btn btn-primary btn-sm" onclick="openAddPair()">+ Ajouter une paire</button>` : '';
+  btn.innerHTML = `<button class="btn btn-primary btn-sm" onclick="openAddPair()">+ Ajouter une paire</button>`;
 
   const pairs = stockFilter === 'all' ? STATE.pairs : STATE.pairs.filter(p => p.status === stockFilter);
   const rows = pairs.map(p => {
@@ -948,9 +947,8 @@ function renderStock() {
       : `<span style="color:var(--accent2);font-weight:600">${effectivePrice}€</span>`;
     const benef = effectivePrice - p.cost;
     const benefDisplay = `<span style="color:${benef >= 0 ? 'var(--green)' : 'var(--red)'};font-family:var(--mono)">${fmtShort(benef)}</span>`;
-    const editPriceBtn = isAdmin ? `<button class="btn btn-secondary btn-sm" style="margin-right:4px" onclick="editPairPrice(${p.id})">💰</button>` : '';
-    const canAct = isAdmin || (currentRole === 'assoc' && ['livraison-moi','stock','livraison-client'].includes(p.status));
-    const actBtn = canAct ? `<button class="btn btn-secondary btn-sm" onclick="openStatusModal(${p.id})">Statut</button>` : '';
+    const editPriceBtn = `<button class="btn btn-secondary btn-sm" style="margin-right:4px" onclick="editPairPrice(${p.id})">💰</button>`;
+    const actBtn = `<button class="btn btn-secondary btn-sm" onclick="openStatusModal(${p.id})">Statut</button>`;
     return `<tr>
       <td style="font-family:var(--mono);color:var(--text3);font-size:11px">#${p.id}</td>
       <td>${dot}${p.color}</td>
@@ -997,12 +995,12 @@ function openStatusModal(id) {
   document.getElementById('modal-status-title').textContent = `Paire #${id} — ${p.color} / ${p.size}`;
   // Options selon rôle
   const allOpts = [
-    { v: 'commande',          l: 'Commandé',                  adminOnly: true },
-    { v: 'livraison-moi',     l: 'En livraison (vers moi)',   adminOnly: false },
-    { v: 'stock',             l: 'En stock (chez moi)',        adminOnly: false },
-    { v: 'livraison-client',  l: 'En livraison (vers client)', adminOnly: false },
-    { v: 'vendu',             l: 'Vendu',                      adminOnly: true },
-    { v: 'arrive',            l: 'Arrivé chez le client',      adminOnly: false },
+    { v: 'commande',          l: 'Commandé',                   adminOnly: true },
+    { v: 'livraison-moi',     l: 'En livraison (vers moi)',    adminOnly: false },
+    { v: 'stock',             l: 'En stock (chez moi)',         adminOnly: false },
+    { v: 'livraison-client',  l: 'En livraison (vers client)',  adminOnly: false },
+    { v: 'vendu',             l: 'Vendu',                       adminOnly: false },
+    { v: 'arrive',            l: 'Arrivé chez le client',       adminOnly: false },
   ];
   const opts = allOpts
     .filter(o => currentRole === 'admin' || !o.adminOnly)
@@ -1206,7 +1204,6 @@ function renderActions() {
         <div style="font-weight:600;margin-bottom:4px">Livraison reçue</div>
         <div style="color:var(--text3);font-size:12px">Commande arrivée chez moi</div>
       </div>
-      ${isAdmin ? `
       <div class="section" style="cursor:pointer" onclick="quickAction('livraison-client')">
         <div style="font-size:28px;margin-bottom:10px">📬</div>
         <div style="font-weight:600;margin-bottom:4px">Expédié au client</div>
@@ -1217,16 +1214,17 @@ function renderActions() {
         <div style="font-weight:600;margin-bottom:4px">Vente réalisée</div>
         <div style="color:var(--text3);font-size:12px">Marquer une paire comme vendue</div>
       </div>
-      <div class="section" style="cursor:pointer" onclick="openPriceModal()">
-        <div style="font-size:28px;margin-bottom:10px">🏷️</div>
-        <div style="font-weight:600;margin-bottom:4px">Changer prix de vente</div>
-        <div style="color:var(--text3);font-size:12px">Prix par défaut : ${STATE.defaultSalePrice}€</div>
-      </div>` : ''}
       <div class="section" style="cursor:pointer" onclick="quickAction('arrive')">
         <div style="font-size:28px;margin-bottom:10px">✅</div>
         <div style="font-weight:600;margin-bottom:4px">Arrivé chez le client</div>
         <div style="color:var(--text3);font-size:12px">Confirmer réception acheteur</div>
       </div>
+      ${isAdmin ? `
+      <div class="section" style="cursor:pointer" onclick="openPriceModal()">
+        <div style="font-size:28px;margin-bottom:10px">🏷️</div>
+        <div style="font-weight:600;margin-bottom:4px">Changer prix de vente</div>
+        <div style="color:var(--text3);font-size:12px">Prix par défaut : ${STATE.defaultSalePrice}€</div>
+      </div>` : ''}
     </div>
     <div id="quick-form"></div>`;
 }
@@ -1308,12 +1306,9 @@ function openPriceModal() {
 // PRODUITS
 // ============================================================
 function renderProduits() {
-  if (currentRole !== 'admin') {
-    document.getElementById('produits-content').innerHTML = `<div class="section"><div class="restricted-overlay">🔒<br>Accès réservé à l'administrateur</div></div>`;
-    return;
-  }
+  const isAdmin = currentRole === 'admin';
   document.getElementById('produits-content').innerHTML = `
-    <div class="section" style="border:1px solid rgba(245,158,11,0.25);margin-bottom:20px">
+    ${isAdmin ? `<div class="section" style="border:1px solid rgba(245,158,11,0.25);margin-bottom:20px">
       <div class="section-title" style="color:var(--amber)">⚙ Paramètres de calcul</div>
       <div class="form-row cols2" style="margin-bottom:0">
         <div class="form-group">
@@ -1329,7 +1324,7 @@ function renderProduits() {
         <button class="btn btn-primary" onclick="saveCalcSettings()">Enregistrer</button>
         <span style="font-size:12px;color:var(--text3);margin-left:10px">Gain / paire = prix vente − 13,13€ − coût liv. = <strong style="color:var(--green)">${(STATE.defaultSalePrice - 13.13 - (STATE.livShipping||0)).toFixed(2)}€</strong></span>
       </div>
-    </div>
+    </div>` : ''}
     <div class="two-col">
       <div class="section">
         <div class="section-title">Coloris disponibles</div>
@@ -1524,7 +1519,7 @@ function renderPerformance() {
         ? `<div style="color:var(--text3);text-align:center;padding:24px;font-size:13px">Aucune vente enregistrée par Kenjy pour le moment</div>`
         : `<div class="table-scroll"><table>
             <thead><tr><th>Date</th><th>Détail</th><th>Prix</th></tr></thead>
-            <tbody>${ventesDetail.map((v, i) => `
+            <tbody>${ventesDetail.map(v => `
               <tr>
                 <td style="font-family:var(--mono);font-size:11px;color:var(--text3);white-space:nowrap">${v.time}</td>
                 <td style="color:var(--text2)">${v.action}</td>
@@ -1533,6 +1528,65 @@ function renderPerformance() {
             </tbody>
           </table></div>`
       }
+    </div>
+
+    <div class="section">
+      <div class="section-title">Toutes les ventes — par vendeur</div>
+      ${(() => {
+        const toutesLesVentes = (STATE.logs || []).filter(l => l.tag === 'vente');
+        if (!toutesLesVentes.length) return `<div style="color:var(--text3);text-align:center;padding:24px;font-size:13px">Aucune vente enregistrée</div>`;
+
+        // Grouper par user
+        const parUser = {};
+        toutesLesVentes.forEach(l => {
+          if (!parUser[l.user]) parUser[l.user] = [];
+          parUser[l.user].push(l);
+        });
+
+        // Stats globales
+        const totalVentes = toutesLesVentes.length;
+        const totalRevenu = toutesLesVentes.reduce((s, l) => {
+          const match = l.action.match(/#(\d+)/);
+          const pair = match ? STATE.pairs.find(p => p.id === parseInt(match[1])) : null;
+          return s + (pair ? (pair.salePrice || STATE.defaultSalePrice) : STATE.defaultSalePrice);
+        }, 0);
+
+        const userCards = Object.entries(parUser).map(([user, logs]) => {
+          const nb = logs.length;
+          const revenu = logs.reduce((s, l) => {
+            const match = l.action.match(/#(\d+)/);
+            const pair = match ? STATE.pairs.find(p => p.id === parseInt(match[1])) : null;
+            return s + (pair ? (pair.salePrice || STATE.defaultSalePrice) : STATE.defaultSalePrice);
+          }, 0);
+          const pct = totalVentes > 0 ? Math.round((nb / totalVentes) * 100) : 0;
+          const isMe = user === currentUser;
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:32px;height:32px;border-radius:50%;background:${user==='admin'?'rgba(108,99,255,0.2)':'rgba(34,197,94,0.15)'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${user==='admin'?'var(--accent2)':'var(--green)'}">
+                  ${user.charAt(0).toUpperCase()}
+                </div>
+                <span style="font-weight:600;font-size:14px">${user}${isMe ? ' <span style="font-size:10px;color:var(--text3)">(moi)</span>' : ''}</span>
+              </div>
+              <span style="font-family:var(--mono);font-size:12px;color:var(--text3)">${pct}%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px">
+              <span style="color:var(--text2)">${nb} vente(s)</span>
+              <span style="color:var(--green);font-weight:600">${revenu.toFixed(2)}€</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width:${pct}%;background:${user==='admin'?'var(--accent)':'var(--green)'}"></div>
+            </div>
+          </div>`;
+        }).join('');
+
+        return `
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-size:13px">
+            <span style="color:var(--text2)">Total : <strong style="color:var(--text)">${totalVentes} ventes</strong></span>
+            <span style="color:var(--green);font-weight:600">${totalRevenu.toFixed(2)}€ encaissés</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">${userCards}</div>`;
+      })()}
     </div>`;
 }
 
